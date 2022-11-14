@@ -1,0 +1,85 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+import scipy.integrate as integrate
+
+
+def matrix(x_min,x_max,n,l,ratio):
+    x = np.arange(x_min,x_max,n)
+    h = x[1] - x[0]
+    u = np.zeros(shape=(len(x), len(x)))
+    V = np.zeros(shape=(len(x), len(x)))
+    for i in range(1, len(x) - 1):
+        for j in range(1, len(x)):
+            if i == j:
+                u[i][j] = (2/h**2)
+                V[i][j] = (l * (l + 1) / 2*((x[i] ** 2))) - (2 / x[i])*np.exp(-x[i]/ratio)
+            elif i == j + 1:
+                u[i][j] =-1/h**2
+            elif i == j-1:
+                u[i][j] =-1/h**2
+    return u + V, x
+
+def plot(i, l, power,ratio):
+    H, x = matrix(0.01, 10, 0.01, l,ratio)
+    u = eigh(H)[1][:, i]
+    c = integrate.simps(u ** 2, x)
+    N = u / np.sqrt(c)
+    if power==2:
+        plt.title("Psi square VS x")
+        plt.ylabel("Psi square")
+    else:
+        plt.title("Psi VS x")
+        plt.ylabel("Psi")
+    plt.xlabel('x')
+    plt.rcParams['figure.figsize'] = [10,10]
+    plt.plot(x,N**power,label='For ratio='+str(ratio)+';For l='+str(l))
+    plt.legend()
+
+def Veff(x, l, ratio):
+    Vef = (l * (l + 1) / (x**2))-(2 / x)*np.exp(-x/ratio)
+    V = -2 / (x)
+    return Vef,V
+
+def eigen(x_min, x_max, h, l,ratio, i):
+    H, x = matrix(x_min,x_max, h, l,ratio)
+    u = eigh(H)[0][i]
+    v = eigh(H)[1][:,i]
+    return u
+
+
+
+for j in range(0,3):
+    print("For n=",j+1)
+    for i in [2,5,10,20,100]:
+        energy=eigen(0.01, 5*(j+1), 0.01, 0, i, j)
+        if energy<0:
+            print("Energy eigen value for α=",i,": ",energy)
+
+
+E=[]
+ratio=[2,5,10,20,100]
+for i in ratio:
+    plt.rcParams['figure.figsize'] = [10,10]
+    plot(0,0,1,i)
+    energy = eigen(0.01, 10, 0.01, 0, i, 0)
+    E.append(energy)
+plt.grid()
+
+plt.show()
+
+for i in [2,5,10,20,100]:
+    plt.rcParams['figure.figsize'] = [10,10]
+    plot(0,0,2,i)
+plt.grid()
+plt.show()
+
+plt.plot(ratio,E,c='b')
+plt.scatter(ratio,E,c='r')
+plt.xlabel('Ratio')
+plt.ylabel('Energy')
+plt.title('Ground state Energy as a Function Of α')
+plt.grid()
+plt.show()
+
