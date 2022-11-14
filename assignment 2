@@ -1,0 +1,130 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.integrate as integrate
+
+
+def RK4(f , X0 , a , b , n , e) :
+    h = ( b - a ) / n
+    t = np.linspace (a , b , n+1)
+    X = np.zeros ([n+1 , len( X0 ) ])
+    X[0] = X0
+    for i in range(n):
+        k1 = f ( t [i] , X [i], e)
+        k2 = f(t[i] + h / 2, X[i] + (k1 * h) / 2, e)
+        k3 = f(t[i] + h / 2, X[i] + (k2 * h) / 2, e)
+        k4 = f(t[i] + h, X[i] + k3 * h, e)
+        X[i + 1] = X[i] + (h / 6) * (k1 + 2 * (k2 + k3) + k4)
+
+    return X , t
+
+
+def func (x , Y ,e): 
+    psi = 0
+    u , y = Y
+    psi_der1 = y
+    psi_der2 = -e * u
+    return np.array([psi_der1 , psi_der2])
+
+def main_f(f, ic, a, b, n, e):
+    rk4 = RK4(f, ic, a, b, n, e)
+    rk4_X = rk4[0].T
+    t = rk4[-1]
+    return rk4_X, t
+
+initial_conditions = [0, 1]
+Z ,t = main_f(func , initial_conditions , -1/2 ,  1/2, 100, 8)
+print(Z[0])
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(t,Z[0],label='Not Normalized',c='m')
+plt.grid()
+
+initial_conditions = [0, 5]
+Z2 ,t = main_f(func , initial_conditions , -1/2 ,  1/2, 100, 8)
+
+#Normalization
+
+c=integrate.simps(Z[0]**2,t)
+N=Z[0]/np.sqrt(c)
+
+plt.plot(t,N,label=" Normalized with u'(0)=0")
+c=integrate.simps(Z2[0]**2,t)
+N=Z2[0]/np.sqrt(c)
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(t,N,label=" Normalized with u'(0)=5",c='r')
+plt.legend()
+plt.show()
+
+
+#For e=11
+
+initial_conditions = [0, 1]
+Z ,t = main_f(func , initial_conditions , -1/2 ,  1/2, 100, 11)
+print(Z[0])
+plt.plot(t,Z[0],label='Not Normalized',c='g')
+plt.grid()
+
+initial_conditions = [0, 5]
+Z2 ,t = main_f(func , initial_conditions , -1/2 ,  1/2, 100, 11)
+
+#Normalization
+
+c=integrate.simps(Z[0]**2,t)
+N=Z[0]/np.sqrt(c)
+
+plt.plot(t,N,label=" Normalized with u'(0)=0")
+c=integrate.simps(Z2[0]**2,t)
+N=Z2[0]/np.sqrt(c)
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(t,N,label=" Normalized with u'(0)=5",c='y')
+plt.legend()
+plt.title("e=11")
+plt.show()
+
+
+
+def energy(points):
+    e=np.linspace(0.9*(np.pi**2), 1.1*(np.pi**2), points)
+    print("step size: ", e[2]-e[1])
+    psi_l = []
+    for i in e:
+        psi, t2 = main_f(func, initial_conditions, -1 / 2, 1 / 2, 100, i)
+        if abs(psi[0][-1])< 0.5 * 10**(-5):
+            return psi[0][-1], i, psi,t2
+
+points=5
+psi_l,i,psi,x = energy(points)
+print("Eigenfunction: ",psi_l)
+print("Eigenvalue: ",i)
+print("Psi: ",psi[0])
+
+#Normalization
+
+c=integrate.simps(psi[0]**2,t)
+N=psi[0]/np.sqrt(c)
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(x,N)
+plt.grid()
+plt.title("Ground State Normalized eigen function")
+plt.show()
+
+initial_conditions = [0, 1]
+Z ,t = main_f(func , initial_conditions , -1/2 ,  1/2, 100, 4*(np.pi)**2)
+print(Z[0])
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(t,Z[0],label='Not Normalized')
+plt.grid()
+
+initial_conditions = [0, 5]
+Z2 ,t = main_f(func , initial_conditions , -1/2 ,  1/2, 100, 4*(np.pi)**2)
+
+c=integrate.simps(Z[0]**2,t)
+N=Z[0]/np.sqrt(c)
+
+plt.plot(t,N,label=" Normalized with u'(0)=0")
+c=integrate.simps(Z2[0]**2,t)
+N=Z2[0]/np.sqrt(c)
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(t,N,label=" Normalized with u'(0)=5",c='b')
+plt.legend()
+plt.title("e=4*pi**2")
+plt.show()
