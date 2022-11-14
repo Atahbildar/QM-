@@ -1,0 +1,343 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[394]:
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+import scipy.integrate as integrate
+from scipy import optimize,stats
+import pandas as pd
+from scipy import special
+import math as m
+from scipy.optimize import fsolve
+
+
+def analytical(x,n):
+    p_monic = special.hermite(n, monic=True)
+    U = (1/np.sqrt((np.power(2,n))*m.factorial(n)))*(1/np.power(np.pi,1/4))*(np.exp((-np.power(x,2))/2))*p_monic(x)
+    a = integrate.simps(U**2,x)
+    u = U/np.sqrt(a)
+    return u
+
+def alpha(x,Emax,Emin):
+    a = 2*(Emax-((1/2)*x**2))
+    return a 
+
+def numerov(xi,xf,N,Emax,Emin,n,func):
+    h = (xf-xi)/(N)
+    C = []
+    U = np.zeros((N))
+    X = []
+    U_d = []
+    for i in range(N):
+        x = xi + i*h
+        X.append(x)
+        C_i = 1+(h**2/12)*func(x,Emax,Emin)
+        C.append(C_i)
+    if (n%2)==0:
+        U[0] = 1
+        U[1] = (6-5*C[0])/C[1]
+    else:
+        U[0] = 0
+        U[1] = h
+    for i in range(1,N-1):
+        U[i+1] = (1/C[i+1])*((12-10*C[i])*U[i]-C[i-1]*U[i-1])
+        U_ = (U[i+1]-U[i])/(X[i+1]-X[i])
+        U_d.append(U_)
+    return U,U_d,X
+
+def numerov_back(xi,xf,N,Emax,Emin,func):
+    h = (xf-xi)/(N)
+    C = []
+    U = np.zeros((N))
+    X = []
+    U[0] = 0
+    U[1] = h
+    U_d = []
+    for i in range(0,N):
+        x = xi + i*h
+        X.append(x)
+        C_i = 1+(h**2/12)*func(x,Emax,Emin)
+        C.append(C_i)
+    for i in range(1,N-1):
+        U[i+1] = (1/C[i+1])*((12-10*C[i])*U[i]-C[i-1]*U[i-1])
+        U_ = (U[i+1]-U[i])/(X[i+1]-X[i])
+        U_d.append(U_)
+    return U,U_d,X
+
+def app_end(U,X):
+    U_ = np.delete(U, len(U)-1)
+    result_list = []
+    result_list = list(U_) 
+    for item in X:
+        result_list.append(item)
+    return result_list
+
+def parity(U,X,n):
+    u = U[::-1]
+    x = X[::-1]
+    U_array = []
+    X_array = []
+    if (n%2)==0:
+        X_array = app_end(np.multiply(-1,x),X)
+        U_array = app_end(u,U)
+    elif n%2!=0:
+        X_array = app_end(np.multiply(-1,x),X)
+        U_array = app_end(np.multiply(-1,u),U)
+    return U_array,X_array
+
+
+def turning_point(n):
+    x_cl = np.sqrt(2*n+1)
+    return x_cl
+
+def plot(xi,xf,Emax,Emin,n):
+    U,U_d,X = numerov(xi,xf,1000,Emax,Emin,n_node,alpha)
+    a = integrate.simps(U**2,X)
+    u = U/np.sqrt(a)
+    X1 = np.linspace(0,xf,998)
+    a1 = integrate.simps(np.power(2,U_d),X1)
+    u1 = U_d/np.sqrt(a1)
+    fig, ax = plt.subplots((2),figsize =(10,10))
+    ax[0].plot(X,u)
+    ax[0].set_title("U ")
+    ax[0].set_xlabel("x_range")
+    ax[0].set_ylabel("U_solution")
+    ax[0].set_title("For node N = %i " %n_node)
+    ax[1].plot(X1,u1)
+    ax[1].set_xlabel("x_range")
+    ax[1].set_ylabel("U_derivative")
+    ax[1].set_title("U_derivative")
+    fig.tight_layout()
+    plt.grid()
+    plt.show()
+    return 
+
+for i in range(6):
+    xi = 0
+    xf = 6
+    n_node = i
+    Emin = 0
+    Emax = n_node + 0.5  
+    plot(xi,xf,Emax,Emin,i)
+
+
+
+
+# In[441]:
+
+
+def matching_u(xi,xf,n_node,Emax,Emin,func):
+    X_cl = turning_point(n_node)
+    x = np.linspace(X_cl,xf,1000)
+    x1 = np.linspace(0,X_cl,1000)
+    U,U_d,X = numerov(xi,X_cl,1000,Emax,Emin,n_node,func)
+    U1,U_d1,X1 = numerov_back(xf,X_cl,1000,Emax,Emin,func)
+    p2 = np.multiply(-1,U1[::-1])
+    resc_fac = U[-1]/p2[0]
+    p1=[]
+    for i in range(len(U)):
+        p = p2[i]
+        p1.append(resc_fac*p)    
+    UU = app_end(U,p1)
+    XX = app_end(x1,x)
+    uu1,x2 = parity(UU,XX,n_node)
+    a = integrate.simps(np.power(uu1,2),x2)
+    uu = uu1/np.sqrt(a)
+    return U,p2,p1,UU,uu1,uu,x2,X_cl,U_d,U_d1
+
+
+
+
+def matching_deri(xi,xf,n_node,Emax,Emin,func):
+    X_cl = turning_point(n_node)
+    x = np.linspace(X_cl,xf,1000)
+    x1 = np.linspace(0,X_cl,1000)
+    U,U_d,X = numerov(xi,X_cl,1000,Emax,Emin,n_node,func)
+    U1,U_d1,X1 = numerov_back(xf,X_cl,1000,Emax,Emin,func)
+    x = np.linspace(xi,X_cl,998)
+    x1 = np.linspace(X_cl,xf,998)
+    a = integrate.simps(np.power(U_d,2),x)
+    u_d = U_d/np.sqrt(a)
+    a1 = integrate.simps(np.power(U_d1,2),x1)
+    u_d1 = U_d1/np.sqrt(a1)
+    u_d11 = u_d1[::-1]
+    plt.plot(x,U_d)
+    plt.plot(x1,np.multiply(-1,u_d11))
+    plt.show()
+    return
+    
+
+def plot_u(xi,xf,x_cl,U,p2,p1,UU,uu,uu1,x2,n_node):
+    x = np.linspace(X_cl,xf,1000)
+    x1 = np.linspace(0,X_cl,1000)
+    fig, ax = plt.subplots((3),figsize =(10,10))
+    ax[0].plot(x1,U,label = "forward")
+    ax[0].plot(x,p2,label = "back")
+    ax[0].set_xlabel("x range")
+    ax[0].set_ylabel("U")
+    ax[0].set_title("For node N = %i " %n_node)
+    ax[0].grid()
+    ax[0].legend()
+    
+    ax[1].plot(x1,np.multiply(1,U),label = "forward")
+    ax[1].plot(x,p1,label = "back")
+    ax[1].set_xlabel("x range")
+    ax[1].set_ylabel("U")
+    ax[1].grid()
+    ax[1].legend()
+    
+    ax[2].plot(x2,uu1)
+    ax[2].set_xlabel("x range")
+    ax[2].set_ylabel("U")
+    ax[2].grid()
+    return 
+
+
+for i in range(6):
+    Emin = 0
+    Emax = i + 0.5
+    xi = 0
+    xf = 6
+    U,p2,p1,UU,uu,uu1,x2,X_cl,U_d,U_d1 = matching_u(xi,xf,i,Emax,Emin,alpha)
+    plot = plot_u(xi,xf,X_cl,U,p2,p1,UU,uu,uu1,x2,i)
+
+for i in range(6):
+    Emin = 0
+    Emax = i + 0.5
+    xi = 0
+    xf = 10
+    U,p2,p1,UU,uu,uu1,x2,X_cl,U_d,U_d1 = matching_u(xi,xf,i,Emax,Emin,alpha)
+    plot = plot_u(xi,xf,X_cl,U,p2,p1,UU,uu,uu1,x2,i)
+
+
+# In[442]:
+
+
+def alpha1(x,E_min,E_max):
+    a = 2*(((E_max+E_min)/2)-((1/2)*x**2))
+    return a 
+
+def e_range(u_R,n_node,E_min,E_max) :
+    E = (E_min+E_max)/2
+    u_R1 = []
+    for i in range(1,len(u_R)):
+        if u_R[i-1]*u_R[i]<0:
+            u_R1.append(i)
+    N_node = len(u_R1)
+    if N_node <= int(n_node/2):
+        E_min = E
+    else:
+        E_max = E
+    return E_min,E_max
+
+
+def E(xi,xf,n_node,E_max,E_min,tol):
+    for i in range(1000):
+        U,p2,p1,UU,uu1,uu,x2,X_cl,U_d,U_d1 = matching_u(xi,xf,n_node,E_min,E_min,alpha1)
+        E_min_new,E_max_new = e_range(U,n_node,E_min,E_max)
+        if abs(E_max_new - E_min_new )<=tol:
+            return E_min,E_max,uu1
+        else:
+            E_min = E_min_new
+            E_max = E_max_new
+    return E_min,E_max,uu1
+
+def deri_diff(E_):
+    E_min,E_max,U = E(xi,xf,n_node,Emax,E_,0.2)
+    u_norm=U/np.sqrt(integrate.simps(np.power(U,2),np.linspace(-xf,xf,len(U))))
+    h = (xf-xi)/(N)
+    C = []
+    alpha = lambda x: 2*(((E_+Emax)/2) - (1/2)*(x**2))
+    for i in range(N):
+        x = xi + h*i
+        c_i = 1+((h**2)/12)*alpha1(x,E_max,E_)
+        C.append(c_i)
+    t = int(len(U)/2)
+    p = N
+    G = (1/h)*(u_norm[t+p+1]+u_norm[t+p-1]-((12*C[-1])-10)*u_norm[t+p])
+    return abs(G)
+    
+
+def match_der(E_min,E_max):
+    E_min_new,E_max_new,U =E(xi,xf,n_node,E_max,E_min,0.2)
+    root = fsolve(deri_diff,E_min_new,xtol=1e-10)
+    r = abs(root)
+    E_min,E_max,U = E(xi,xf,n_node,root[0],E_min,0.2)
+    u_norm=U/np.sqrt(integrate.simps(np.power(U,2),np.linspace(-xf,xf,len(U))))
+    plt.scatter(np.linspace(-xf,xf,len(u_norm)),u_norm,label="final")
+    plt.legend()
+    plt.grid()
+    plt.show()
+    return abs(root)
+
+xi = 0 ;xf = 6;Energy = []
+n_node = 0;Emax = n_node+0.5;Emin = 0;N = 1000
+E0 = match_der(Emin,Emax)
+Energy.append(E0)
+
+n_node = 1;Emax = n_node+0.5;Emin = 0;N = 1000
+E1 = match_der(Emin,Emax)
+Energy.append(E1)
+
+n_node = 2;Emax = n_node+0.5;Emin = 0;N = 300
+E2 = match_der(Emin,Emax)
+Energy.append(E2)
+
+n_node = 3;Emax = n_node+0.5;Emin = 0;N = 1000
+E3 = match_der(Emin,Emax)
+Energy.append(E3)
+
+n_node = 4;Emax = n_node+0.5;Emin = 0;N = 1000
+E4 = match_der(Emin,Emax)
+Energy.append(E4)
+
+n_node = 5;Emax = n_node+0.5;Emin = 0;N = 600
+E5 = match_der(Emin,Emax)
+Energy.append(E5)
+
+E = []
+for i in range(len(Energy)):
+    E.append(i+0.5)
+    
+l = {"E_analytical":E,"E_numericaly":Energy}
+print(pd.DataFrame(l))
+
+
+
+
+xi = 0 ;xf = 10;Energy = []
+n_node = 0;Emax = n_node+0.5;Emin = 0;N = 1000
+E0 = match_der(Emin,Emax)
+Energy.append(E0)
+
+n_node = 1;Emax = n_node+0.5;Emin = 0;N = 1000
+E1 = match_der(Emin,Emax)
+Energy.append(E1)
+
+n_node = 2;Emax = n_node+0.5;Emin = 0;N = 300
+E2 = match_der(Emin,Emax)
+Energy.append(E2)
+
+n_node = 3;Emax = n_node+0.5;Emin = 0;N = 1000
+E3 = match_der(Emin,Emax)
+Energy.append(E3)
+
+n_node = 4;Emax = n_node+0.5;Emin = 0;N = 1000
+E4 = match_der(Emin,Emax)
+Energy.append(E4)
+
+n_node = 5;Emax = n_node+0.5;Emin = 0;N = 600
+E5 = match_der(Emin,Emax)
+Energy.append(E5)
+
+E = []
+for i in range(len(Energy)):
+    E.append(i+0.5)
+    
+l = {"E_analytical":E,"E_numericaly":Energy}
+print(pd.DataFrame(l))
+
