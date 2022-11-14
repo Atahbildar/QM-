@@ -1,0 +1,60 @@
+import numpy as np
+from scipy.linalg import eigh
+import  matplotlib.pyplot as plt
+import pandas as pd
+import scipy.integrate as integrate
+
+
+def matrix(a,b,n):
+    x=np.arange(a,b,n)
+    h= x[1]-x[0]
+    u=np.zeros(shape=(len(x),len(x)))
+    v = np.zeros(shape=(len(x), len(x)))
+    for i in range(0,len(x)):
+        for j in range(0,len(x)):
+            if i==j:
+                u[i][j]= 2
+            elif i==j+1:
+                u[i][j]= -1
+            elif i==j-1:
+                u[i][j]= -1
+    u_new= u/(h**2)
+    H=u_new+v
+    return H,x
+
+H,x=matrix(-1/2,1/2,0.001)
+
+
+u_ana=0
+for i in range(0,11):
+    if (i%2)== 0:
+        u_ana = np.sqrt(2)*np.cos(-(i+1)*np.pi*x)
+        u=eigh(H)[1][:,i]
+        C_1 = integrate.simps(np.array(u) ** 2, x)
+        n_1 = u / (np.sqrt(C_1))
+        N_1=np.array(n_1)
+        plt.plot(x,u_ana**2,c='m',label='Analytical')
+        plt.scatter(x,N_1**2,c='g',label='Numerical Normalized')
+        plt.title(f"for n = {i}")
+        plt.xlabel("X")
+        plt.ylabel("U(x)")
+        plt.legend()
+        plt.grid()
+    if (i%2)!=0:
+        u_ana = np.sqrt(2)*np.sin(-(i+1)*np.pi*x)
+        u=eigh(H)[1][:,i]
+        C_2 = integrate.simps(np.array(u) ** 2, x)
+        n_2 = u / (np.sqrt(C_2))
+        N_2=np.array(n_2)
+        plt.plot(x,u_ana**2,c='m',label='Analytical')
+        plt.scatter(x,N_2**2,c='g',label='Numerical Normalized')
+        plt.title(f"for n = {i}")
+        plt.xlabel("X")
+        plt.ylabel("U(x)")
+        plt.legend()
+        plt.grid()
+    plt.show()
+
+data={'u_analyticial':u_ana,'u_numerical':u}
+P=pd.DataFrame(data)
+print(P)
