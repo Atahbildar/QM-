@@ -1,0 +1,112 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.linalg import eigh
+import scipy.integrate as integrate
+
+
+def matrix(x_min, x_max, n, l):
+    x = np.arange(x_min, x_max, n)
+    h = x[1] - x[0]
+    u = np.zeros(shape=(len(x), len(x)))
+    V = u
+    for i in range(1, len(x) - 1):
+        for j in range(0, len(x)):
+            if i == j:
+                u[i][j] = -(2 / h ** 2)
+                V[i][j] = ((-2 / x[i]) + (l * (l + 1)) / x[i] ** 2)
+            elif i == j + 1:
+                u[i][j] = -1 / h ** 2
+            elif i == j - 1:
+                u[i][j] = -1 / h ** 2
+    return u + V, x
+
+def plot(i, l, pwr):
+    H, x = matrix(0.01, 50, 0.01, l)
+    u = eigh(H)[1][:, i]
+    c = integrate.simps(u ** 2, x) #normalization
+    N = u / np.sqrt(c)
+    if pwr==2:
+        plt.title("psi square VS x")
+        plt.grid()
+        plt.ylabel("psi square")
+    else:
+        plt.title("psi VS x")
+        plt.grid()
+        plt.ylabel("psi")
+    plt.xlabel('x')
+    plt.plot(x, N ** pwr,c='m', label='for n='+str(i+1)+' for l='+str(l))
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+def Veff(x, l):
+    Vef = (l * (l + 1) / (x ** 2)) - (2 / x)
+    V = -2 / x
+    return Vef, V
+
+def eigen(x_min, x_max, h, l, i):
+    H, x = matrix(x_min, x_max, h, l)
+    u = eigh(H)[0][i]
+    v = eigh(H)[1][:, i]
+    print("energy eigen value for n=", i + 1, u)
+    return v,x
+
+print("(a)")
+for i in range(0, 5):
+    H, x = matrix(0.01, 0.5, 0.01, i)
+    Vef, V = Veff(x, i)
+    plt.plot(x, Vef, label='for ')
+    plt.xlabel('x')
+    plt.ylabel('Veff')
+    plt.title('x VS Veff')
+plt.grid()
+plt.show()
+
+for i in range(0, 4):
+    H, x = matrix(0.01, 0.5, 0.01, i)
+    Vef, V = Veff(x, i)
+    plt.plot(x, V,c='g')
+    plt.xlabel('x')
+    plt.ylabel('V')
+    plt.title('x VS V')
+plt.grid()
+plt.show()
+
+
+H, x = matrix(10 ** (-14), 50, 0.5, 0)
+u = eigh(H)[0]
+for i in range(10):
+    eigen(10 ** (-14), 50, 0.5, 0, i)
+
+
+for i in range(0, 4):
+    plot(i, 0, 1)
+plt.show()
+
+print("(b)")
+print("For l=1")
+for i in range(10):
+    v,x = eigen(10 ** (-14), 50, 0.5, 1, i)
+    c = integrate.simps(v ** 2, x)
+    N = u / np.sqrt(c)
+    print("energy eigen vector for n=", i + 1, N)
+
+print("For l=2")
+for i in range(10):
+    v,x = eigen(10 ** (-14), 50, 0.5, 1, i)
+    c = integrate.simps(v ** 2, x)
+    N = u / np.sqrt(c)
+    print("energy eigen vector for n=", i + 1, N)
+
+print("(c)")
+
+print("for n=1:")
+plot(0, 0, 2)
+plt.grid()
+plt.show()
+print("for n=2:")
+plot(1, 0, 2)
+plot(1, 1, 2)
+plot(1, 2, 2)
+plt.grid()
+plt.show()
