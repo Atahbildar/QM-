@@ -1,0 +1,159 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.integrate as integrate
+import pandas as pd
+from scipy.special import hermite
+from scipy.stats import linregress
+
+u_odd = [0, 0.001]
+u_even=[1,1.001]
+
+def V(x):
+    V = (x**2)/2
+    return V
+def numerov(x_min,x_max,e,i_cs,n,V):
+
+    x = np.linspace(x_min,x_max,n)
+    u0, u1 = i_cs[0],i_cs[1]
+
+    Vx = []
+    for i in x:
+        Vx.append(V(i))
+    Vx = np.array(Vx)
+    alpha = 2*(-Vx+e+0.5)
+    h=x[1]-x[0]
+
+    ci = 1+(((h**2)/12)*alpha)
+    p = 0
+    u = [u0, u1]
+    for i in range(1,len(x)-1):
+        p+=1
+        u2 = (((12-10*ci[i])*u[i])-(ci[i-1]*u[i-1]))/(ci[i+1])
+        u.append(u2)
+        if p==len(x)-2:
+            break
+    c = integrate.simps(np.array(u)**2,x)
+    N = u/(np.sqrt(c))
+
+    return x,np.array(N)
+
+print("(a)")
+
+def energy(u,ics,emax,nodes,tol):
+    emin=0
+    p=0
+    while abs(emax-emin)>=tol:
+        p+=1
+        u2=u[:-1]
+        u3=u[1:]
+        count=0
+
+        for i,j in zip(u2,u3):
+            if i*j<0:
+                count+=1
+        if count<=int(nodes/2):
+            emin=(emax+emin)/2
+        else:
+            emax=(emax+emin)/2
+        e_n=(emax+emin)/2
+        u=numerov(0,4,e_n,ics,400,V)[1]
+    return (emax+emin)/2+0.5,p,emin,emax
+
+def parity(n,u):
+    if n%2==0:
+        p_u=u[::-1]
+        p_u1=p_u[1:]
+    else:
+        p_u=-1*u[::-1]
+        p_u1 =p_u[1:]
+    return p_u1
+
+def u_total(n,u):
+    return np.concatenate((parity(n,u),u))
+
+def analytic_sol(x,n):
+    Hn=hermite(n)
+    psi=(np.e)**((-(x**2))/2)*Hn(x)
+    c = integrate.simps(psi**2,x)
+    psi_n= psi/np.sqrt(c)
+    return psi_n
+
+
+nodes=[0,1,2,3,4,5]
+e_n=[]
+for i in nodes:
+    if i%2==0:
+        u=numerov(0,8,4,u_even,400,V)[1]
+        e_n.append(energy(u,u_even,8,i,0.5*(10**(-10)))[0])
+    else:
+        u=numerov(0,8,4,u_odd,400,V)[1]
+        e_n.append(energy(u,u_odd,8,i,0.5*(10**(-10)))[0])
+
+e_ana_sol=[0.5,1.5,2.5,3.5,4.5,5.5]
+print(pd.DataFrame({'Nodes':nodes,'Eigen Values':e_n,'Analytic_sol Values':e_ana_sol}))
+
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(nodes,e_n,c='r')
+plt.grid()
+plt.xlabel('Nodes')
+plt.ylabel('e_n')
+plt.title("e_n VS Nodes")
+plt.show()
+slope_n = linregress(np.array(nodes), np.array(e_n))[0]
+intercept_n = linregress(np.array(nodes), np.array(e_n))[1]
+print('Slope for en vs n: ',slope_n)
+print('Intercept for en vs n: ',intercept_n)
+
+print("(b)")
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(np.array(nodes)**2,e_n,c='r')
+plt.grid()
+plt.xlabel('Nodes Square')
+plt.ylabel('e_n')
+plt.title("e_n VS nodes Square")
+slope_n2 = linregress(np.array(nodes)**2, np.array(e_n))[0]
+intercept_n2 = linregress(np.array(nodes)**2, np.array(e_n))[1]
+
+fitted_plt = slope_n2*(np.array(nodes)**2 + intercept_n2)
+plt.scatter(np.array(nodes)**2, fitted_plt, label='Fitted curve')
+plt.show()
+
+print('Slope for e_n vs n^2: ',slope_n2)
+print('Intercept for e_n vs n^2: ',intercept_n2)
+
+print("(c)")
+
+def plot(power, xmax):
+    x = np.linspace(-xmax, xmax, 799)
+    for i in nodes:
+        if i % 2 == 0:
+            u = numerov(0, xmax, i, u_even, 400, V)[1]
+            if i==0 or 4:
+                plt.rcParams['figure.figsize'] = [10,10]
+                plt.plot(x,u_total(i,u)**power,label='Calculated',c='r')
+            else:
+                plt.rcParams['figure.figsize'] = [10,10]
+                plt.plot(x, (-u_total(i, u))**power,label='Calculated',c='r')
+            plt.scatter(x,analytic_sol(x,i)**power,label='Analytic solution')
+            plt.title('For nodes='+str(i)+'for xmax='+str(xmax))
+            plt.grid()
+            plt.legend()
+            plt.show()
+        else:
+            u = numerov(0, 4, i, u_odd, 400, V)[1]
+            if i==3:
+                plt.rcParams['figure.figsize'] = [10,10]
+                plt.plot(np.linspace(-xmax,xmax,799),(-u_total(i,u))**power,label='Calculated',c='r')
+            else:
+                plt.rcParams['figure.figsize'] = [10,10]
+                plt.plot(np.linspace(-xmax,xmax,799),u_total(i,u)**power,label='Calculated',c='r')
+            plt.scatter(x, analytic_sol(x, i)**power,label='Analytic solution')
+            plt.title('For nodes='+str(i)+'for xmax='+str(xmax))
+            plt.grid()
+            plt.legend()
+            plt.show()
+
+plot(1,5)
+plot(2,5)
+plot(1,10)
+plot(2,10)
