@@ -1,0 +1,57 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+n=[]
+f_cl=[]
+f_qn=[]
+E=[]
+e_0=8.85*10**(-12)
+h_bar=1.054*10**(-34)
+m=9.1*10**(-31)
+e=-1.6*10**(-1)
+p=0.5 
+
+
+for i in range(2,20):
+    p+=0.5
+    l=10**p
+    n.append(l)
+    E_e=(-13.6)/(l**2)
+    E.append(E_e)
+    fc=(m*e**4)/(32*((np.pi)**3)*(e_0**2)*(h_bar)**3 * ((l*10)**3))
+    f_cl.append(fc)
+    fq=((m * e**4)* (2*(l*10) - 1))/(64*(np.pi)**3 * (e_0**2) * (h_bar)**3 * (((l*10)**2)*(((l*10)-1)**2)))
+
+    #fq=(m*e**4)/(64*((np.pi)**3)*(e_0**2)*(h_bar)**3 * (i**3)) * ((2*i - 1)/(i**2 * (i-1)**2))
+    f_qn.append(fq)
+for i in range(len(E)):
+    plt.axhline(y=E[i], linewidth=2, label='n= '+ str(n[i]))
+    
+    plt.ylabel('Energy')
+    plt.rcParams['figure.figsize'] = [10,10]
+    plt.legend()
+plt.grid()
+plt.show()
+    
+
+def tol():
+    f_Qua=[]
+    f_CL=[]
+    Err=[]
+    while abs(f_qn-f_cl)>10**(-5):
+        f_Qua.append(f_qn)
+        f_CL.append(f_cl)
+    df=abs(np.array(f_Qua)-np.array(f_CL))
+    err=df/np.array(f_Qua)
+    Err.append(err) 
+    
+data={'n':n,'Classical Freq':f_cl,'Quantum Freq':f_qn}
+print(pd.DataFrame(data))
+plt.rcParams['figure.figsize'] = [10,10]
+plt.loglog(n,f_cl,label='Classical')
+plt.loglog(n,f_qn,label='Quantum')
+plt.legend()
+plt.grid()
+plt.show()
+        
