@@ -1,0 +1,75 @@
+import numpy as np
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+import cmath as m
+
+def fn_k(b,x,k):
+    A=1/m.sqrt(2*b)
+    a=(1/m.sqrt(2*np.pi))*integrate.simps(A*np.exp(-1j*k*x),x)
+    return a
+
+def psi(a,b,x,k,t):
+    p=[]
+    for i in x:
+        psi=(1/m.sqrt(2*np.pi))*integrate.simps(a*np.exp(1j*(k*i - (k**2)*t)),k)
+        p.append(psi)
+    return p
+
+k=np.linspace(-10,10,200)
+x=np.linspace(-1,1,200)
+
+P=[]
+
+
+print("(a)(ii)")
+for i in k:
+    a=fn_k(1,x,i)
+    P.append(a)
+    plt.rcParams['figure.figsize'] = [10,10]
+    plt.scatter(i,a,c='g')
+plt.ylabel('Momentum')
+plt.xlabel('X')
+plt.title("For t=0")
+plt.grid()
+plt.show()
+
+
+print("(a)(i)")
+q=psi(np.array(P),1,x,k,0)
+plt.rcParams['figure.figsize'] = [10,10]
+plt.plot(x,np.array(q)**2,c='r')
+plt.ylabel('Psi square')
+plt.xlabel('x')
+plt.title("Probability Density For t=0")
+plt.grid()
+plt.show()
+
+
+
+print("(b)")
+t=np.arange(0,2,0.1)
+for i in t:
+    q=psi(np.array(P),1,x,k,i)
+    plt.rcParams['figure.figsize'] = [10,10]
+    plt.plot(x,np.array(q)**2,label='t= '+str(i))
+plt.xlabel('x')
+plt.ylabel('Psi square')
+plt.title("probability Density For Different Time Intervals")
+plt.legend()
+plt.grid()
+plt.show()
+
+print("(c)")
+x=np.linspace(-1/2,1/2,200)
+for i in t:
+    q=psi(np.array(P),1,x,k,i)
+    plt.rcParams['figure.figsize'] = [10,10]
+    plt.plot(x,np.array(q)**2,label='t= '+str(i))
+plt.legend()
+plt.xlabel('x')
+plt.ylabel('Psi square')
+plt.title("probability Density For |x|<b/2")
+plt.grid()
+plt.show()
+
+
